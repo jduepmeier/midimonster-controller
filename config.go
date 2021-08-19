@@ -24,8 +24,8 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		MidimonsterConfigPath: "~/midimonster.yaml",
-		BindAddr:              "localhost",
+		MidimonsterConfigPath: "/etc/midimonster/midimonster.cfg",
+		BindAddr:              "0.0.0.0",
 		Port:                  8080,
 	}
 }

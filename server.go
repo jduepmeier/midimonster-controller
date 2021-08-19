@@ -53,6 +53,18 @@ func (server *Server) Start() error {
 		encoder := json.NewEncoder(w)
 		encoder.Encode(&response.Body)
 	})
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(indexHTML))
+	})
+	router.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mainCSS))
+	})
+	router.HandleFunc("/main.js", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mainJS))
+	})
 	handler := http.NewServeMux()
 	handler.Handle("/", router)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.Port), handler)
