@@ -49,7 +49,7 @@ textarea {
 const mainJS = `
 async function writeConfig() {
   config = document.querySelector("#config")
-  const response = await fetch('api/reload', {
+  const response = await fetch('api/write', {
     method: 'POST',
     body: {
 		"Content": config,
