@@ -7,10 +7,16 @@ const indexHTML = `
 		<link rel="stylesheet" href="main.css" />
 	</head>
 	<body>
-		<textarea col="80" rows="40"></textarea>
-		<button onscript="writeConfig()">Write Config</button>
-		<button onscript="restart()">Restart Midimonster</button>
-		<button onscript="get()">Get newest config</button>
+		<textarea id="config" col="80" rows="40"></textarea>
+		<button id="write" onclick="writeConfig()">Write Config</button>
+		<button id="restart" onclick="restart()">Restart Midimonster</button>
+		<button id="get" onclick="get()">Get newest config</button>
+
+		<br />
+		<div>
+			<textarea id="log">
+			</textarea>
+		</div>
 
 		<script src="main.js"></script>
 	</body>
@@ -41,15 +47,50 @@ textarea {
 `
 
 const mainJS = `
-async function writeConfig() {}
+async function writeConfig() {
+  config = document.querySelector("#config")
+  const response = await fetch('api/reload', {
+    method: 'POST',
+    body: {
+		"Content": config,
+	},
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  const myJson = await response.json(); //extract JSON from the http response
+  if (myJson["Error"] == undefined) {
+	log = document.querySelector("#log");
+	log.value += "\nERROR: " + myJson["Error"];
+  }
+}
 
-async function restart() {}
+async function restart() {
+  const response = await fetch('api/reload', {
+    method: 'POST',
+    body: {},
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  const myJson = await response.json(); //extract JSON from the http response
+  if (myJson["Error"] == undefined) {
+	log = document.querySelector("#log");
+	log.value += "\nERROR: " + myJson["Error"];
+  }
+}
 
 async function get() {
 	const response = await fetch('api/config');
 	const myJson = await response.json();
-	textArea = document.querySelector("textarea");
-	textArea.value = myJson.content;
+	textArea = document.querySelector("#config");
+	textArea.value = myJson.Content;
 }
-get();
+
+async function init() {
+	log = document.querySelector("#log");
+	config = document.querySelector("#config");
+	get();
+}
+init();
 `
