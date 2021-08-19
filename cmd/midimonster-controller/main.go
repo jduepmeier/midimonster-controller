@@ -25,7 +25,7 @@ func main() {
 		logger.Err(err).Msg("cannot read config")
 	}
 
-	controller, err := midimonster.NewController(config)
+	controller, err := midimonster.NewController(config, logger)
 	if err != nil {
 		logger.Err(err).Msg("cannot create controller")
 	}

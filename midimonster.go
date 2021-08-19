@@ -3,6 +3,8 @@ package midimonster
 import (
 	"context"
 	"io/ioutil"
+
+	"github.com/rs/zerolog"
 )
 
 type Midimonster struct {
@@ -10,15 +12,16 @@ type Midimonster struct {
 	CurrentConfig     string
 	LastConfig        string
 	ProcessController ProcessController
+	logger            zerolog.Logger
 }
 
-func NewMidimonster(config *Config) (*Midimonster, error) {
+func NewMidimonster(config *Config, logger zerolog.Logger) (*Midimonster, error) {
 	var err error
 	ctx := context.Background()
 	midi := &Midimonster{
 		Path: config.MidimonsterConfigPath,
 	}
-	midi.ProcessController, err = NewProcessControllerSystemd(ctx, config.UnitName)
+	midi.ProcessController, err = NewProcessControllerSystemd(ctx, midi.logger, config.UnitName)
 	if err != nil {
 		return nil, err
 	}

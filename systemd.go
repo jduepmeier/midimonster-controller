@@ -5,14 +5,16 @@ import (
 	"fmt"
 
 	"github.com/coreos/go-systemd/v22/dbus"
+	"github.com/rs/zerolog"
 )
 
 type ProcessControllerSystemd struct {
 	conn     *dbus.Conn
 	unitName string
+	logger   zerolog.Logger
 }
 
-func NewProcessControllerSystemd(ctx context.Context, unitName string) (*ProcessControllerSystemd, error) {
+func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, unitName string) (*ProcessControllerSystemd, error) {
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
 	if err != nil {
 		return nil, err
@@ -20,6 +22,7 @@ func NewProcessControllerSystemd(ctx context.Context, unitName string) (*Process
 	return &ProcessControllerSystemd{
 		conn:     conn,
 		unitName: unitName,
+		logger:   logger.With().Str("module", "systemd").Logger(),
 	}, nil
 }
 
@@ -32,7 +35,7 @@ func (pc *ProcessControllerSystemd) Start(ctx context.Context) error {
 	}
 	resultString := <-result
 	if resultString != "" {
-		return fmt.Errorf("got error from systemd(%d): %s", jobId, resultString)
+		pc.logger.Info().Msgf("%d: %s", jobId, resultString)
 	}
 	return nil
 }
