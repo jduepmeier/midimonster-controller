@@ -20,7 +20,7 @@ func NewProcessControllerProcess(ctx context.Context, execPath string, configPat
 }
 
 func (pc *ProcessControllerProcess) Start(ctx context.Context) error {
-	pc.cmd = exec.CommandContext(ctx, pc.ExecPath, "-c", pc.ConfigPath)
+	pc.cmd = exec.CommandContext(ctx, pc.ExecPath, pc.ConfigPath)
 	return pc.cmd.Start()
 }
 func (pc *ProcessControllerProcess) Stop(ctx context.Context) error {
