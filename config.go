@@ -27,6 +27,7 @@ func DefaultConfig() *Config {
 		MidimonsterConfigPath: "/etc/midimonster/midimonster.cfg",
 		BindAddr:              "0.0.0.0",
 		Port:                  8080,
+		UnitName:              "midimonster.service",
 	}
 }
 
