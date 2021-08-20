@@ -47,37 +47,47 @@ textarea {
 `
 
 const mainJS = `
+
+function handleError(err) {
+	if (err !== undefined) {
+		log = document.querySelector("#log");
+		log.value += "\nERROR: " + myJson["Error"];
+	}
+}
+
 async function writeConfig() {
   config = document.querySelector("#config")
-  const response = await fetch('api/write', {
+  fetch('api/write', {
     method: 'POST',
-    body: {
-		"Content": config,
-	},
+    body: JSON.stringify({
+		"Content": config.value,
+	}),
     headers: {
       'Content-Type': 'application/json'
     }
+  }).then((response) => {
+	response.json().then((myJson) => {
+		handleError(myJson["Error"]);
+	});
+  }).catch((err) => {
+	  handleError(err);
   });
-  const myJson = await response.json(); //extract JSON from the http response
-  if (myJson["Error"] == undefined) {
-	log = document.querySelector("#log");
-	log.value += "\nERROR: " + myJson["Error"];
-  }
 }
 
 async function restart() {
-  const response = await fetch('api/reload', {
+  fetch('api/reload', {
     method: 'POST',
-    body: {},
+    body: JSON.stringify({}),
     headers: {
       'Content-Type': 'application/json',
     }
+  }).then((response) => {
+	response.json().then((myJson) => {
+		handleError(myJson["Error"]);
+	});
+  }).catch((err) => {
+	  handleError(err);
   });
-  const myJson = await response.json(); //extract JSON from the http response
-  if (myJson["Error"] == undefined) {
-	log = document.querySelector("#log");
-	log.value += "\nERROR: " + myJson["Error"];
-  }
 }
 
 async function get() {
@@ -92,5 +102,6 @@ async function init() {
 	config = document.querySelector("#config");
 	get();
 }
+
 init();
 `
