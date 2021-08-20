@@ -2,7 +2,6 @@ package midimonster
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/rs/zerolog"
@@ -48,7 +47,7 @@ func (pc *ProcessControllerSystemd) Stop(ctx context.Context) error {
 	}
 	resultString := <-result
 	if resultString != "" {
-		return fmt.Errorf("got error from systemd(%d): %s", jobId, resultString)
+		pc.logger.Info().Msgf("%d: %s", jobId, resultString)
 	}
 	return nil
 }
@@ -61,7 +60,7 @@ func (pc *ProcessControllerSystemd) Restart(ctx context.Context) error {
 	}
 	resultString := <-result
 	if resultString != "" {
-		return fmt.Errorf("got error from systemd(%d): %s", jobId, resultString)
+		pc.logger.Info().Msgf("%d: %s", jobId, resultString)
 	}
 	return nil
 }
