@@ -38,6 +38,7 @@ func (midi *Midimonster) LoadConfig() error {
 }
 
 func (midi *Midimonster) ReplaceConfig(ctx context.Context, content string) error {
+	content = content + "\n"
 	lastContent, err := ioutil.ReadFile(midi.Path)
 	if err != nil {
 		return err
@@ -47,6 +48,7 @@ func (midi *Midimonster) ReplaceConfig(ctx context.Context, content string) erro
 	if err != nil {
 		return err
 	}
+	midi.CurrentConfig = content
 	return midi.Restart(ctx)
 }
 
