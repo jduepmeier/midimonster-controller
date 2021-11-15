@@ -2,6 +2,7 @@ package midimonster
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/rs/zerolog"
@@ -21,7 +22,11 @@ func NewMidimonster(config *Config, logger zerolog.Logger) (*Midimonster, error)
 	midi := &Midimonster{
 		Path: config.MidimonsterConfigPath,
 	}
-	midi.ProcessController, err = NewProcessControllerSystemd(ctx, midi.logger, config.UnitName)
+	constructor, ok := ProcessControllerConstructors[config.ControlType]
+	if !ok {
+		return nil, fmt.Errorf("cannot create process controller: unknown control type %s", config.ControlType)
+	}
+	midi.ProcessController, err = constructor(ctx, midi.logger, config)
 	if err != nil {
 		return nil, err
 	}

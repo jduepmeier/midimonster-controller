@@ -13,14 +13,14 @@ type ProcessControllerSystemd struct {
 	logger   zerolog.Logger
 }
 
-func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, unitName string) (*ProcessControllerSystemd, error) {
+func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &ProcessControllerSystemd{
 		conn:     conn,
-		unitName: unitName,
+		unitName: config.Systemd.UnitName,
 		logger:   logger.With().Str("module", "systemd").Logger(),
 	}, nil
 }

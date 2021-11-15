@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"os/exec"
+
+	"github.com/rs/zerolog"
 )
 
 type ProcessControllerProcess struct {
@@ -12,11 +14,15 @@ type ProcessControllerProcess struct {
 	ConfigPath string
 }
 
-func NewProcessControllerProcess(ctx context.Context, execPath string, configPath string) (*ProcessControllerProcess, error) {
+func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
 	return &ProcessControllerProcess{
-		ExecPath:   execPath,
-		ConfigPath: configPath,
+		ExecPath:   config.Process.BinPath,
+		ConfigPath: config.MidimonsterConfigPath,
 	}, nil
+}
+
+func init() {
+	ProcessControllerConstructors["process"] = NewProcessControllerProcess
 }
 
 func (pc *ProcessControllerProcess) Start(ctx context.Context) error {

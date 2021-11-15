@@ -16,10 +16,21 @@ var (
 )
 
 type Config struct {
-	MidimonsterConfigPath string `yaml:"configPath"`
-	UnitName              string `yaml:"unitName"`
-	BindAddr              string `yaml:"bind"`
-	Port                  uint16 `yaml:"port"`
+	MidimonsterConfigPath string        `yaml:"configPath"`
+	BindAddr              string        `yaml:"bind"`
+	Port                  uint16        `yaml:"port"`
+	Systemd               ConfigSystemd `yaml:"systemd"`
+	Process               ConfigProcess `yaml:"process"`
+	ControlType           string        `yaml:"controlType"`
+}
+
+type ConfigSystemd struct {
+	UnitName string `yaml:"unitName"`
+}
+
+type ConfigProcess struct {
+	BinPath string   `yaml:"binPath"`
+	Args    []string `yaml:"args"`
 }
 
 func DefaultConfig() *Config {
@@ -27,7 +38,13 @@ func DefaultConfig() *Config {
 		MidimonsterConfigPath: "/etc/midimonster/midimonster.cfg",
 		BindAddr:              "0.0.0.0",
 		Port:                  8080,
-		UnitName:              "midimonster.service",
+		ControlType:           "systemd",
+		Systemd: ConfigSystemd{
+			UnitName: "midimonster.service",
+		},
+		Process: ConfigProcess{
+			Args: []string{},
+		},
 	}
 }
 
@@ -48,6 +65,7 @@ func ReadConfig(path string) (*Config, error) {
 	}
 
 	config.MidimonsterConfigPath = expandPath(config.MidimonsterConfigPath)
+	config.Process.BinPath = expandPath(config.Process.BinPath)
 
 	return config, nil
 }

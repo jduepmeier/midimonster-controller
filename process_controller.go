@@ -1,6 +1,10 @@
 package midimonster
 
-import "context"
+import (
+	"context"
+
+	"github.com/rs/zerolog"
+)
 
 type ProcessController interface {
 	Start(ctx context.Context) error
@@ -10,7 +14,13 @@ type ProcessController interface {
 	Cleanup()
 }
 
+type NewProcessControllerFunc = func(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error)
+
 type ProcessStatus int
+
+var (
+	ProcessControllerConstructors = make(map[string]NewProcessControllerFunc)
+)
 
 const (
 	ProcessStatusRunning = iota
