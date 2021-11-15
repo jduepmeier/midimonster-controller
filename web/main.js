@@ -47,9 +47,27 @@ async function get() {
 	textArea.value = myJson.Content;
 }
 
+async function getStatus() {
+	const response = await fetch('/api/status');
+	const myJson = await response.json();
+	statusBlock = document.querySelector("#status");
+    if (myJson.Code === 0) {
+        statusBlock.classList.add("green")
+        statusBlock.classList.remove("red")
+    } else {
+        statusBlock.classList.add("red")
+        statusBlock.classList.remove("green")
+    }
+	statusBlock.innerText = myJson.Text;
+}
+
 async function init() {
 	log = document.querySelector("#log");
 	config = document.querySelector("#config");
+    getStatus();
+    setInterval(() => {
+        getStatus();
+    }, 5000)
 	get();
 }
 

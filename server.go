@@ -25,6 +25,10 @@ type HTTPReponse struct {
 type HTTPConfigWrite struct {
 	Content string
 }
+type HTTPStatus struct {
+	Code int
+	Text string
+}
 
 func NewServer(config *Config, controller *Controller) *Server {
 	return &Server{
@@ -49,6 +53,12 @@ func (server *Server) Start() error {
 	})
 	router.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
 		response := server.handleConfigGet(w, r)
+		w.WriteHeader(response.Code)
+		encoder := json.NewEncoder(w)
+		encoder.Encode(&response.Body)
+	})
+	router.HandleFunc("/api/status", func(w http.ResponseWriter, r *http.Request) {
+		response := server.handleStatus(w, r)
 		w.WriteHeader(response.Code)
 		encoder := json.NewEncoder(w)
 		encoder.Encode(&response.Body)
@@ -123,6 +133,26 @@ func (server *Server) handleConfigGet(w http.ResponseWriter, r *http.Request) *H
 	}
 	return &HTTPReponse{
 		Body: &content,
+		Code: http.StatusOK,
+	}
+}
+
+func (server *Server) handleStatus(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+	defer r.Body.Close()
+	status, err := server.controller.Midimonster.ProcessController.Status(r.Context())
+	if err != nil {
+		return &HTTPReponse{
+			Body: HTTPError{
+				Error: err.Error(),
+			},
+			Code: http.StatusInternalServerError,
+		}
+	}
+	return &HTTPReponse{
+		Body: &HTTPStatus{
+			Code: int(status),
+			Text: status.Text(),
+		},
 		Code: http.StatusOK,
 	}
 }

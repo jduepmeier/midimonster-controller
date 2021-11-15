@@ -65,7 +65,15 @@ func (pc *ProcessControllerSystemd) Restart(ctx context.Context) error {
 	return nil
 }
 func (pc *ProcessControllerSystemd) Status(ctx context.Context) (ProcessStatus, error) {
-	return ProcessStatusRunning, nil
+	prop, err := pc.conn.GetServicePropertyContext(ctx, pc.unitName, "ActiveState")
+	if err != nil {
+		return ProcessStatusStopped, err
+	}
+	if prop.Value.String() == "running" {
+		return ProcessStatusRunning, nil
+	} else {
+		return ProcessStatusStopped, nil
+	}
 }
 
 func (pc *ProcessControllerSystemd) Cleanup() {

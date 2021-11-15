@@ -18,6 +18,16 @@ type NewProcessControllerFunc = func(ctx context.Context, logger zerolog.Logger,
 
 type ProcessStatus int
 
+func (status ProcessStatus) Text() string {
+	switch status {
+	case ProcessStatusRunning:
+		return "running"
+	case ProcessStatusStopped:
+		return "stopped"
+	}
+	return ""
+}
+
 var (
 	ProcessControllerConstructors = make(map[string]NewProcessControllerFunc)
 )
