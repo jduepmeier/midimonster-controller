@@ -7,7 +7,7 @@ function handleError(err) {
 
 async function writeConfig() {
   config = document.querySelector("#config")
-  fetch('api/write', {
+  fetch('/api/write', {
     method: 'POST',
     body: JSON.stringify({
 		"Content": config.value,
@@ -25,7 +25,7 @@ async function writeConfig() {
 }
 
 async function restart() {
-  fetch('api/reload', {
+  fetch('/api/reload', {
     method: 'POST',
     body: JSON.stringify({}),
     headers: {
@@ -41,7 +41,7 @@ async function restart() {
 }
 
 async function get() {
-	const response = await fetch('api/config');
+	const response = await fetch('/api/config');
 	const myJson = await response.json();
 	textArea = document.querySelector("#config");
 	textArea.value = myJson.Content;

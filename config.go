@@ -22,6 +22,7 @@ type Config struct {
 	Systemd               ConfigSystemd `yaml:"systemd"`
 	Process               ConfigProcess `yaml:"process"`
 	ControlType           string        `yaml:"controlType"`
+	Development           bool
 }
 
 type ConfigSystemd struct {

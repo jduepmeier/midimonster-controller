@@ -56,7 +56,11 @@ func (server *Server) Start() error {
 	handler := http.NewServeMux()
 	handler.Handle("/api/", router)
 	handler.Handle("/", http.RedirectHandler("/web/", http.StatusPermanentRedirect))
-	handler.Handle("/web/", http.FileServer(http.FS(webContent)))
+	if server.config.Development {
+		handler.Handle("/web/", http.StripPrefix("/web", http.FileServer(http.Dir("web"))))
+	} else {
+		handler.Handle("/web/", http.FileServer(http.FS(webContent)))
+	}
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.Port), handler)
 	if err != nil {
 		return err

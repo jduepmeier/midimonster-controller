@@ -9,8 +9,9 @@ import (
 )
 
 type opts struct {
-	ConfigPath string `short:"c" long:"config" description:"path to config path"`
-	LogLevel   string `short:"l" long:"loglevel" description:"loglevel"`
+	ConfigPath  string `short:"c" long:"config" description:"path to config path"`
+	LogLevel    string `short:"l" long:"loglevel" description:"loglevel"`
+	Development bool   `short:"d" long:"dev" description:"start in dev mode"`
 }
 
 func main() {
@@ -35,6 +36,7 @@ func main() {
 		logger.Err(err).Msg("cannot read config")
 		return
 	}
+	config.Development = opts.Development
 
 	controller, err := midimonster.NewController(config, logger)
 	if err != nil {

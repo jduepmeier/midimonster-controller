@@ -26,6 +26,7 @@ func NewMidimonster(config *Config, logger zerolog.Logger) (*Midimonster, error)
 	if !ok {
 		return nil, fmt.Errorf("cannot create process controller: unknown control type %s", config.ControlType)
 	}
+	logger.Info().Msgf("using process managment type %s", config.ControlType)
 	midi.ProcessController, err = constructor(ctx, midi.logger, config)
 	if err != nil {
 		return nil, err
