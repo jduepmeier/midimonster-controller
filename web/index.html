@@ -1,0 +1,20 @@
+<html>
+	<head>
+		<title>Midimonster Controller</title>
+		<link rel="stylesheet" href="main.css" />
+	</head>
+	<body>
+		<textarea id="config" col="80" rows="40"></textarea>
+		<button id="write" onclick="writeConfig()">Write Config</button>
+		<button id="restart" onclick="restart()">Restart Midimonster</button>
+		<button id="get" onclick="get()">Get newest config</button>
+
+		<br />
+		<div>
+			<textarea id="log">
+			</textarea>
+		</div>
+
+		<script src="main.js"></script>
+	</body>
+</html>

@@ -11,7 +11,7 @@ import (
 var (
 	DefaultConfigPaths = []string{
 		"config.yaml",
-		"~/.config/bpm/config.yaml",
+		"~/.config/midimonster-controller/config.yaml",
 	}
 )
 
