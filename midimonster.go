@@ -20,7 +20,8 @@ func NewMidimonster(config *Config, logger zerolog.Logger) (*Midimonster, error)
 	var err error
 	ctx := context.Background()
 	midi := &Midimonster{
-		Path: config.MidimonsterConfigPath,
+		Path:   config.MidimonsterConfigPath,
+		logger: logger,
 	}
 	constructor, ok := ProcessControllerConstructors[config.ControlType]
 	if !ok {

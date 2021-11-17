@@ -31,6 +31,7 @@ type ConfigSystemd struct {
 
 type ConfigProcess struct {
 	BinPath string   `yaml:"binPath"`
+	WorkDir string   `yaml:"workDir"`
 	Args    []string `yaml:"args"`
 }
 

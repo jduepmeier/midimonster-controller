@@ -18,11 +18,16 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 	if err != nil {
 		return nil, err
 	}
+	newLogger := logger.With().Str("module", "systemd").Logger()
 	return &ProcessControllerSystemd{
 		conn:     conn,
 		unitName: config.Systemd.UnitName,
-		logger:   logger.With().Str("module", "systemd").Logger(),
+		logger:   newLogger,
 	}, nil
+}
+
+func init() {
+	ProcessControllerConstructors["systemd"] = NewProcessControllerSystemd
 }
 
 func (pc *ProcessControllerSystemd) Start(ctx context.Context) error {
