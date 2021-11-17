@@ -3,6 +3,7 @@ package midimonster
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -21,6 +22,7 @@ type ProcessControllerProcess struct {
 	stderr       io.ReadCloser
 	stdout       io.ReadCloser
 	logger       zerolog.Logger
+	logsBuffer   *RingBuffer
 	runningMutex sync.Mutex
 }
 
@@ -39,6 +41,7 @@ func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, con
 		ExecPath:   config.Process.BinPath,
 		ConfigPath: configPath,
 		WorkDir:    config.Process.WorkDir,
+		logsBuffer: NewRingBuffer(1024),
 		logger:     newLogger,
 	}, nil
 }
@@ -89,6 +92,7 @@ func (pc *ProcessControllerProcess) startReader(reader io.ReadCloser, id string,
 	for scanner.Scan() {
 		line = scanner.Text()
 		pc.logger.Debug().Msgf("midimonster (%s): %s", id, line)
+		pc.logsBuffer.Append(fmt.Sprintf("(%s) %s", id, line))
 	}
 	err = scanner.Err()
 	if err != nil {
@@ -137,4 +141,8 @@ func (pc *ProcessControllerProcess) Status(ctx context.Context) (ProcessStatus, 
 
 func (pc *ProcessControllerProcess) Cleanup() {
 	_ = pc.Stop(context.Background())
+}
+
+func (pc *ProcessControllerProcess) Logs(ctx context.Context, oldest uint64) ([]string, uint64, error) {
+	return pc.logsBuffer.GetFromOldest(oldest), pc.logsBuffer.Newest(), nil
 }

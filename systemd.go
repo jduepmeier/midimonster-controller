@@ -84,3 +84,7 @@ func (pc *ProcessControllerSystemd) Status(ctx context.Context) (ProcessStatus, 
 func (pc *ProcessControllerSystemd) Cleanup() {
 	pc.conn.Close()
 }
+
+func (pc *ProcessControllerSystemd) Logs(ctx context.Context, oldest uint64) ([]string, uint64, error) {
+	return []string{}, 0, nil
+}

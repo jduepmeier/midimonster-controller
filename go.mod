@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/jessevdk/go-flags v1.5.0 // indirect
 	github.com/rs/zerolog v1.23.0

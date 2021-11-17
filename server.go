@@ -4,13 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
+
+type ServerHandlerFunc func(server *Server, w http.ResponseWriter, r *http.Request) *HTTPReponse
 
 type Server struct {
 	config     *Config
 	controller *Controller
+	logger     zerolog.Logger
 }
 
 type HTTPError struct {
@@ -22,56 +27,66 @@ type HTTPReponse struct {
 	Code int
 }
 
+type HTTPLogs struct {
+	Logs   []string
+	Newest uint64
+}
+
 type HTTPConfigWrite struct {
 	Content string
 }
+
 type HTTPStatus struct {
 	Code int
 	Text string
 }
 
-func NewServer(config *Config, controller *Controller) *Server {
-	return &Server{
+func NewServer(config *Config, controller *Controller, logger zerolog.Logger) *Server {
+	server := &Server{
 		config:     config,
 		controller: controller,
+		logger:     logger.With().Str("component", "server").Logger(),
 	}
+	return server
+}
+
+func (server *Server) handleResponse(w http.ResponseWriter, r *http.Request, response *HTTPReponse) {
+	w.WriteHeader(response.Code)
+	encoder := json.NewEncoder(w)
+	encoder.Encode(&response.Body)
 }
 
 func (server *Server) Start() error {
 	router := mux.NewRouter()
 	router.HandleFunc("/api/reload", func(w http.ResponseWriter, r *http.Request) {
 		response := server.handleConfigReload(w, r)
-		w.WriteHeader(response.Code)
-		encoder := json.NewEncoder(w)
-		encoder.Encode(&response.Body)
+		server.handleResponse(w, r, response)
 	})
 	router.HandleFunc("/api/write", func(w http.ResponseWriter, r *http.Request) {
 		response := server.handleConfigWrite(w, r)
-		w.WriteHeader(response.Code)
-		encoder := json.NewEncoder(w)
-		encoder.Encode(&response.Body)
+		server.handleResponse(w, r, response)
 	})
 	router.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
 		response := server.handleConfigGet(w, r)
-		w.WriteHeader(response.Code)
-		encoder := json.NewEncoder(w)
-		encoder.Encode(&response.Body)
+		server.handleResponse(w, r, response)
 	})
 	router.HandleFunc("/api/status", func(w http.ResponseWriter, r *http.Request) {
 		response := server.handleStatus(w, r)
-		w.WriteHeader(response.Code)
-		encoder := json.NewEncoder(w)
-		encoder.Encode(&response.Body)
+		server.handleResponse(w, r, response)
 	})
-	handler := http.NewServeMux()
-	handler.Handle("/api/", router)
-	handler.Handle("/", http.RedirectHandler("/web/", http.StatusPermanentRedirect))
+	router.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
+		response := server.handleLogs(w, r)
+		server.handleResponse(w, r, response)
+	})
+	muxer := http.NewServeMux()
+	muxer.Handle("/api/", router)
+	muxer.Handle("/", http.RedirectHandler("/web/", http.StatusPermanentRedirect))
 	if server.config.Development {
-		handler.Handle("/web/", http.StripPrefix("/web", http.FileServer(http.Dir("web"))))
+		muxer.Handle("/web/", http.StripPrefix("/web", http.FileServer(http.Dir("web"))))
 	} else {
-		handler.Handle("/web/", http.FileServer(http.FS(webContent)))
+		muxer.Handle("/web/", http.FileServer(http.FS(webContent)))
 	}
-	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.Port), handler)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.Port), muxer)
 	if err != nil {
 		return err
 	}
@@ -152,6 +167,42 @@ func (server *Server) handleStatus(w http.ResponseWriter, r *http.Request) *HTTP
 		Body: &HTTPStatus{
 			Code: int(status),
 			Text: status.Text(),
+		},
+		Code: http.StatusOK,
+	}
+}
+
+func (server *Server) handleLogs(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+	defer r.Body.Close()
+	oldestString, ok := r.URL.Query()["oldest"]
+	var oldest uint64
+	var err error
+	if ok {
+		if len(oldestString) > 0 {
+			oldest, err = strconv.ParseUint(oldestString[0], 10, 64)
+			if err != nil {
+				return &HTTPReponse{
+					Body: &HTTPError{
+						Error: err.Error(),
+					},
+					Code: http.StatusBadRequest,
+				}
+			}
+		}
+	}
+	logs, newest, err := server.controller.Midimonster.ProcessController.Logs(r.Context(), oldest)
+	if err != nil {
+		return &HTTPReponse{
+			Body: HTTPError{
+				Error: err.Error(),
+			},
+			Code: http.StatusInternalServerError,
+		}
+	}
+	return &HTTPReponse{
+		Body: &HTTPLogs{
+			Logs:   logs,
+			Newest: newest,
 		},
 		Code: http.StatusOK,
 	}

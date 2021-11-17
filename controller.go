@@ -13,9 +13,10 @@ func NewController(config *Config, logger zerolog.Logger) (*Controller, error) {
 	var err error
 	controller := &Controller{
 		Config: config,
+		logger: logger.With().Str("component", "controller").Logger(),
 	}
 	controller.Midimonster, err = NewMidimonster(config, logger)
-	controller.server = NewServer(config, controller)
+	controller.server = NewServer(config, controller, logger)
 
 	return controller, err
 }

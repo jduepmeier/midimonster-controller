@@ -11,6 +11,7 @@ type ProcessController interface {
 	Stop(ctx context.Context) error
 	Restart(ctx context.Context) error
 	Status(ctx context.Context) (ProcessStatus, error)
+	Logs(ctx context.Context, oldest uint64) ([]string, uint64, error)
 	Cleanup()
 }
 
