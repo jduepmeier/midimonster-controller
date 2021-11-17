@@ -70,11 +70,12 @@ func (pc *ProcessControllerSystemd) Restart(ctx context.Context) error {
 	return nil
 }
 func (pc *ProcessControllerSystemd) Status(ctx context.Context) (ProcessStatus, error) {
-	prop, err := pc.conn.GetServicePropertyContext(ctx, pc.unitName, "ActiveState")
+	prop, err := pc.conn.GetUnitPropertyContext(ctx, pc.unitName, "ActiveState")
 	if err != nil {
 		return ProcessStatusStopped, err
 	}
-	if prop.Value.String() == "running" {
+	pc.logger.Debug().Msgf("unit is %s", prop.Value.String())
+	if prop.Value.String() == "\"active\"" {
 		return ProcessStatusRunning, nil
 	} else {
 		return ProcessStatusStopped, nil

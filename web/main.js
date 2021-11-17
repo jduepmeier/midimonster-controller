@@ -1,6 +1,6 @@
 import {CodeJar} from './codejar.js';
 import {withLineNumbers} from './linenumbers.js';
-import  hljs from './hljs/core.js';
+import hljs from './hljs/core.js';
 import ini from './hljs/ini.min.js'
 
 class App {
@@ -56,10 +56,10 @@ class App {
       }
     }).then((response) => {
     response.json().then((myJson) => {
-      handleError(myJson["Error"]);
+      this.handleError(myJson["Error"]);
     });
     }).catch((err) => {
-      handleError(err);
+      this.handleError(err);
     });
   }
 
@@ -72,10 +72,10 @@ class App {
       }
     }).then((response) => {
     response.json().then((myJson) => {
-      handleError(myJson["Error"]);
+      this.handleError(myJson["Error"]);
     });
     }).catch((err) => {
-      handleError(err);
+      this.handleError(err);
     });
   }
 
