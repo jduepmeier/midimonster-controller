@@ -1,22 +1,25 @@
 <html>
 	<head>
 		<title>Midimonster Controller</title>
+		<link rel="stylesheet" href="normalize.css" />
 		<link rel="stylesheet" href="main.css" />
 	</head>
 	<body>
-		<textarea id="config" col="80" rows="40"></textarea>
-		<button id="write" onclick="writeConfig()">Write Config</button>
-		<button id="restart" onclick="restart()">Restart Midimonster</button>
-		<button id="get" onclick="get()">Get newest config</button>
+		<div id="grid">
+			<div id="grid-config">
+				<textarea id="config"></textarea>
+			</div>
+			<div id="grid-controls">
+				<button id="write" onclick="writeConfig()">Write Config</button>
+				<button id="restart" onclick="restart()">Restart Midimonster</button>
+				<button id="get" onclick="get()">Get newest config</button>
+				<div id="statusBlock">Status: <span id="status"></span></div>
+			</div>
 
-        <div id="statusBlock">Status: <span id="status"></span></div>
-
-		<br />
-		<div>
-			<textarea id="log">
-			</textarea>
+			<div id="grid-logs">
+				<textarea id="logs"></textarea>
+			</div>
 		</div>
-
 		<script src="main.js"></script>
 	</body>
 </html>

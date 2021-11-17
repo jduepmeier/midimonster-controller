@@ -43,14 +43,14 @@ async function restart() {
 async function get() {
 	const response = await fetch('/api/config');
 	const myJson = await response.json();
-	textArea = document.querySelector("#config");
+	let textArea = document.querySelector("#config");
 	textArea.value = myJson.Content;
 }
 
 async function getStatus() {
 	const response = await fetch('/api/status');
 	const myJson = await response.json();
-	statusBlock = document.querySelector("#status");
+	let statusBlock = document.querySelector("#status");
     if (myJson.Code === 0) {
         statusBlock.classList.add("green")
         statusBlock.classList.remove("red")
@@ -61,13 +61,25 @@ async function getStatus() {
 	statusBlock.innerText = myJson.Text;
 }
 
+async function getLogs() {
+	const response = await fetch(`/api/logs?oldest=${logsOldest}`);
+	const myJson = await response.json();
+	let logsBlock = document.querySelector("#logs");
+  if (myJson.Logs.length > 0) {
+    logsBlock.value += myJson.Logs.join("\n")
+    logsBlock.value += "\n"
+  }
+  logsOldest = myJson.Newest
+  logsBlock.scrollTop = logsBlock.scrollHeight
+}
+
 async function init() {
-	log = document.querySelector("#log");
-	config = document.querySelector("#config");
-    getStatus();
-    setInterval(() => {
-        getStatus();
-    }, 5000)
+  getStatus();
+  logsOldest = 0
+  setInterval(() => {
+      getStatus();
+      getLogs();
+  }, 5000)
 	get();
 }
 
