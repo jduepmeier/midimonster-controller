@@ -83,16 +83,14 @@ func (pc *ProcessControllerProcess) waitForExit(wg *sync.WaitGroup) {
 }
 
 func (pc *ProcessControllerProcess) startReader(reader io.ReadCloser, id string, wg *sync.WaitGroup) {
-	scanner := bufio.NewReader(reader)
+	scanner := bufio.NewScanner(reader)
 	var err error
-	var line []byte
-	for {
-		line, _, err = scanner.ReadLine()
-		if err != nil {
-			break
-		}
+	var line string
+	for scanner.Scan() {
+		line = scanner.Text()
 		pc.logger.Debug().Msgf("midimonster (%s): %s", id, line)
 	}
+	err = scanner.Err()
 	if err != nil {
 		pc.logger.Err(err).Msgf("error scanning %s", id)
 	}
