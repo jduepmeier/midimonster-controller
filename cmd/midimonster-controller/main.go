@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"midimonster"
 	"os"
 
@@ -8,10 +9,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var build = "dev"
+
 type opts struct {
 	ConfigPath  string `short:"c" long:"config" description:"path to config path"`
 	LogLevel    string `short:"l" long:"loglevel" description:"loglevel"`
 	Development bool   `short:"d" long:"dev" description:"start in dev mode"`
+	Version     bool   `short:"v" long:"version" description:"show version"`
 }
 
 func main() {
@@ -21,6 +25,11 @@ func main() {
 	logger := zerolog.New(os.Stderr)
 	_, err := flags.Parse(&opts)
 	if err != nil {
+		return
+	}
+
+	if opts.Version {
+		fmt.Printf("%s - %s\n", os.Args[0], build)
 		return
 	}
 
