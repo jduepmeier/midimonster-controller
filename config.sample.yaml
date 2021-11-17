@@ -1,0 +1,31 @@
+---
+# this is the sample configuration file for midimonster-controller
+#
+# bind configures the bind address for the server.
+# Use "localhost" for binding local or "*" to allow
+# connnections from other hosts
+bind: localhost
+# This configures the port to listen on.
+port: 8080
+# Path the the midimonster configuration.
+# This file will be replaced if the write config button in
+# the web ui is pressed.
+configPath: /etc/midimonster/midimonster.cfg
+# This configures the way the controller speaks to midimonster.
+# Possible values are "process" and "systemd".
+# "process" uses sub processes and "systemd" uses systemd units.
+controlType: process
+# configuration options for controlType process
+process:
+  # configures the path to the midimonster binary.
+  binPath: midimonster
+  # working dir for midimonster (midimonster will search for backends in this directory).
+  # If empty use the directory of the midimonster binary.
+	workDir: ""
+  # List of command line arguments for midimonster. The config file will always be given.
+  args: []
+
+# configuration options for controlType systemd
+systemd:
+  # Configures the systemd unit name.
+  unitName: midimonster.service
