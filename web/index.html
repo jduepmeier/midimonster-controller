@@ -1,18 +1,19 @@
 <html>
 	<head>
 		<title>Midimonster Controller</title>
-		<link rel="stylesheet" href="normalize.css" />
+		<link rel="stylesheet" href="normalize.css" >
+		<link rel="stylesheet" href="highlightjs.css" />
 		<link rel="stylesheet" href="main.css" />
 	</head>
 	<body>
 		<div id="grid">
 			<div id="grid-config">
-				<textarea id="config"></textarea>
+				<div id="config"></div>
 			</div>
 			<div id="grid-controls">
-				<button id="write" onclick="writeConfig()">Write Config</button>
-				<button id="restart" onclick="restart()">Restart Midimonster</button>
-				<button id="get" onclick="get()">Get newest config</button>
+				<button id="write">Write Config</button>
+				<button id="restart">Restart Midimonster</button>
+				<button id="get">Get newest config</button>
 				<div id="statusBlock">Status: <span id="status"></span></div>
 			</div>
 
@@ -20,6 +21,6 @@
 				<textarea id="logs"></textarea>
 			</div>
 		</div>
-		<script src="main.js"></script>
+		<script type="module" src="main.js"></script>
 	</body>
 </html>
