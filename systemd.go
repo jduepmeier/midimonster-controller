@@ -5,9 +5,11 @@ package midimonster
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/coreos/go-systemd/v22/sdjournal"
@@ -15,12 +17,13 @@ import (
 )
 
 type ProcessControllerSystemd struct {
-	conn          *dbus.Conn
-	unitName      string
-	logger        zerolog.Logger
-	logs          *RingBuffer
-	journalReader *sdjournal.JournalReader
-	journalWait   sync.WaitGroup
+	conn            *dbus.Conn
+	unitName        string
+	logger          zerolog.Logger
+	logs            *RingBuffer
+	journalReader   *sdjournal.JournalReader
+	journalWait     sync.WaitGroup
+	journalStopChan chan time.Time
 }
 
 func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
@@ -45,11 +48,12 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 	}
 
 	pc := &ProcessControllerSystemd{
-		conn:          conn,
-		unitName:      config.Systemd.UnitName,
-		logger:        newLogger,
-		logs:          NewRingBuffer(1024),
-		journalReader: journal,
+		conn:            conn,
+		unitName:        config.Systemd.UnitName,
+		logger:          newLogger,
+		logs:            NewRingBuffer(1024),
+		journalReader:   journal,
+		journalStopChan: make(chan time.Time, 1),
 	}
 	pc.journalWait.Add(1)
 	go func() {
@@ -60,7 +64,9 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 }
 
 func (pc *ProcessControllerSystemd) startJournalWatcher() {
-	scanner := bufio.NewScanner(pc.journalReader)
+	var buf bytes.Buffer
+	go pc.journalReader.Follow(pc.journalStopChan, &buf)
+	scanner := bufio.NewScanner(&buf)
 	for scanner.Scan() {
 		text := scanner.Text()
 		pc.logs.Append(text)
@@ -68,6 +74,7 @@ func (pc *ProcessControllerSystemd) startJournalWatcher() {
 	if scanner.Err() != nil {
 		pc.logger.Err(scanner.Err()).Msgf("journal scanner finished with error")
 	}
+	pc.logger.Debug().Msg("finished scanning journal")
 }
 
 func init() {
@@ -128,7 +135,7 @@ func (pc *ProcessControllerSystemd) Status(ctx context.Context) (ProcessStatus, 
 
 func (pc *ProcessControllerSystemd) Cleanup() {
 	pc.conn.Close()
-	pc.journalReader.Close()
+	pc.journalStopChan <- time.Now()
 	pc.journalWait.Done()
 }
 
