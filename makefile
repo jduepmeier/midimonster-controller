@@ -24,11 +24,12 @@ test:
 release-container:
 	podman run \
 		--rm \
+		-e GITHUB_TOKEN \
 		-v /usr/include/systemd:/usr/include/systemd \
 		-v `pwd`:/go/src/$(PACKAGE_NAME) \
 		-w /go/src/$(PACKAGE_NAME) \
 		ghcr.io/troian/golang-cross:latest \
-		build --snapshot --rm-dist
+		release --rm-dist
 
 test-coverage: bin
 	go test -coverprofile=bin/coverage.out
