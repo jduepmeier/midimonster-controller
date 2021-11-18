@@ -83,17 +83,6 @@ func loadYaml(path string, obj interface{}) error {
 	return decoder.Decode(obj)
 }
 
-func dumpYaml(path string, obj interface{}) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := yaml.NewEncoder(file)
-	return encoder.Encode(obj)
-}
-
 func expandPath(path string) string {
 	if path == "~" {
 		path = "$HOME"
