@@ -5,9 +5,9 @@ package midimonster
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -64,9 +64,11 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 }
 
 func (pc *ProcessControllerSystemd) startJournalWatcher() {
-	var buf bytes.Buffer
-	go pc.journalReader.Follow(pc.journalStopChan, &buf)
-	scanner := bufio.NewScanner(&buf)
+	reader, writer := io.Pipe()
+	defer writer.Close()
+	defer reader.Close()
+	go pc.journalReader.Follow(pc.journalStopChan, writer)
+	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		text := scanner.Text()
 		pc.logs.Append(text)
