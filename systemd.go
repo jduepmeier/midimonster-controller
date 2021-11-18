@@ -1,16 +1,29 @@
+// systemd is only useful on linux
+//go:build linux && !nosystemd
+
 package midimonster
 
 import (
+	"bufio"
 	"context"
+	"fmt"
+	"io"
+	"sync"
+	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
+	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/rs/zerolog"
 )
 
 type ProcessControllerSystemd struct {
-	conn     *dbus.Conn
-	unitName string
-	logger   zerolog.Logger
+	conn            *dbus.Conn
+	unitName        string
+	logger          zerolog.Logger
+	logs            *RingBuffer
+	journalReader   *sdjournal.JournalReader
+	journalWait     sync.WaitGroup
+	journalStopChan chan time.Time
 }
 
 func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
@@ -19,11 +32,51 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 		return nil, err
 	}
 	newLogger := logger.With().Str("module", "systemd").Logger()
-	return &ProcessControllerSystemd{
-		conn:     conn,
-		unitName: config.Systemd.UnitName,
-		logger:   newLogger,
-	}, nil
+
+	journalConfig := sdjournal.JournalReaderConfig{
+		NumFromTail: 0,
+		Matches: []sdjournal.Match{
+			{
+				Field: sdjournal.SD_JOURNAL_FIELD_SYSTEMD_UNIT,
+				Value: config.Systemd.UnitName,
+			},
+		},
+	}
+	journal, err := sdjournal.NewJournalReader(journalConfig)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create journal reader: %w", err)
+	}
+
+	pc := &ProcessControllerSystemd{
+		conn:            conn,
+		unitName:        config.Systemd.UnitName,
+		logger:          newLogger,
+		logs:            NewRingBuffer(1024),
+		journalReader:   journal,
+		journalStopChan: make(chan time.Time, 1),
+	}
+	pc.journalWait.Add(1)
+	go func() {
+		defer pc.journalWait.Done()
+		pc.startJournalWatcher()
+	}()
+	return pc, nil
+}
+
+func (pc *ProcessControllerSystemd) startJournalWatcher() {
+	reader, writer := io.Pipe()
+	defer writer.Close()
+	defer reader.Close()
+	go pc.journalReader.Follow(pc.journalStopChan, writer)
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		text := scanner.Text()
+		pc.logs.Append(text)
+	}
+	if scanner.Err() != nil {
+		pc.logger.Err(scanner.Err()).Msgf("journal scanner finished with error")
+	}
+	pc.logger.Debug().Msg("finished scanning journal")
 }
 
 func init() {
@@ -84,8 +137,10 @@ func (pc *ProcessControllerSystemd) Status(ctx context.Context) (ProcessStatus, 
 
 func (pc *ProcessControllerSystemd) Cleanup() {
 	pc.conn.Close()
+	pc.journalStopChan <- time.Now()
+	pc.journalWait.Done()
 }
 
 func (pc *ProcessControllerSystemd) Logs(ctx context.Context, oldest uint64) ([]string, uint64, error) {
-	return []string{}, 0, nil
+	return pc.logs.GetFromOldest(oldest), pc.logs.Newest(), nil
 }
