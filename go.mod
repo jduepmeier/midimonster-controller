@@ -1,6 +1,6 @@
 module midimonster
 
-go 1.17
+go 1.20
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
@@ -12,8 +12,8 @@ require (
 )
 
 require (
-	github.com/godbus/dbus/v5 v5.0.6 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
-	golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c // indirect
+	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 )
