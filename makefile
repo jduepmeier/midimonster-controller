@@ -29,7 +29,7 @@ release-container:
 		-v `pwd`:/go/src/$(PACKAGE_NAME) \
 		-w /go/src/$(PACKAGE_NAME) \
 		ghcr.io/troian/golang-cross:latest \
-		release --rm-dist
+		release --clean
 
 test-coverage: bin
 	go test -coverprofile=bin/coverage.out
