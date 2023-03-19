@@ -28,7 +28,7 @@ release-container:
 		-v /usr/include/systemd:/usr/include/systemd \
 		-v `pwd`:/go/src/$(PACKAGE_NAME) \
 		-w /go/src/$(PACKAGE_NAME) \
-		ghcr.io/troian/golang-cross:latest \
+		ghcr.io/goreleaser/goreleaser-cross:v1.20.2 \
 		release --clean
 
 test-coverage: bin
