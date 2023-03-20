@@ -3,7 +3,7 @@ package midimonster
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/rs/zerolog"
 )
@@ -36,7 +36,7 @@ func NewMidimonster(config *Config, logger zerolog.Logger) (*Midimonster, error)
 }
 
 func (midi *Midimonster) LoadConfig() error {
-	content, err := ioutil.ReadFile(midi.Path)
+	content, err := os.ReadFile(midi.Path)
 	if err != nil {
 		return err
 	}
@@ -46,12 +46,12 @@ func (midi *Midimonster) LoadConfig() error {
 
 func (midi *Midimonster) ReplaceConfig(ctx context.Context, content string) error {
 	content = content + "\n"
-	lastContent, err := ioutil.ReadFile(midi.Path)
+	lastContent, err := os.ReadFile(midi.Path)
 	if err != nil {
 		return err
 	}
 	midi.LastConfig = string(lastContent)
-	err = ioutil.WriteFile(midi.Path, []byte(content), 0644)
+	err = os.WriteFile(midi.Path, []byte(content), 0644)
 	if err != nil {
 		return err
 	}
