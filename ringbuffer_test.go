@@ -3,28 +3,20 @@ package midimonster
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRingBuffer(t *testing.T) {
 	buf := NewRingBuffer(1024)
-	if buf.Size() != 0 {
-		t.Errorf("buffer should be empty")
-	}
+	assert.Equal(t, uint64(0), buf.Size())
 
 	testElement := "test1"
 	buf.Append(testElement)
-	if buf.Size() != 1 {
-		t.Errorf("buffer should now contain one element")
-	}
+	assert.Equal(t, uint64(1), buf.Size())
 
 	elements := buf.GetAll()
-	if len(elements) != 1 {
-		t.Errorf("GetAll should return 1 element")
-	} else {
-		if elements[0] != testElement {
-			t.Errorf("GetAll should return the %s instead of %s", testElement, elements[0])
-		}
+	if assert.Len(t, elements, 1) {
+		assert.Equal(t, testElement, elements[0])
 	}
 }
 
@@ -42,30 +34,18 @@ func TestRingBufferMoreElementsAsBuffer(t *testing.T) {
 		buf.Append(e)
 	}
 
-	if buf.Size() != bufCap {
-		t.Errorf("ring buffer size should be %d instead of %d", bufCap, buf.Size())
-	}
+	assert.Equal(t, bufCap, buf.Size())
 
 	elements := buf.GetAll()
-	if len(elements) != int(bufCap) {
-		t.Errorf("ring buffer elements should be %d instead of %d", bufCap, len(elements))
-	} else {
-		if !cmp.Equal(elements, testStrings[1:]) {
-			t.Errorf("ring buffer elements wrong:\n%s", cmp.Diff(testStrings[1:], elements))
-		}
+	if assert.Len(t, elements, int(bufCap)) {
+		assert.Equal(t, testStrings[1:], elements)
 	}
 
 	elements = buf.GetFromOldest(2)
-	if len(elements) != 1 {
-		t.Errorf("ring buffer elements should be %d instead of %d", 1, len(elements))
-	} else {
-		if !cmp.Equal(elements, testStrings[2:]) {
-			t.Errorf("ring buffer elements wrong:\n%s", cmp.Diff(testStrings[2:], elements))
-		}
+	if assert.Len(t, elements, 1) {
+		assert.Equal(t, testStrings[2:], elements)
 	}
 
 	elements = buf.GetFromOldest(1000)
-	if len(elements) != 0 {
-		t.Errorf("ring buffer elements should be empty")
-	}
+	assert.Len(t, elements, 0)
 }
