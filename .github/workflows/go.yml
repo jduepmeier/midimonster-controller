@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    
+    - run: sudo apt-get install -y gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu libsystemd-dev
 
     - name: Set up Go
       uses: actions/setup-go@v4
