@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.31.0
 	github.com/stretchr/testify v1.8.4
