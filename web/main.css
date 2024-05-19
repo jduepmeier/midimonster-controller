@@ -9,7 +9,9 @@ body {
 	background-color: #333;
 }
 
-button, #statusBlock {
+button,
+label,
+#statusBlock {
 	background-color: #333;
 	display: inline-block;
 	padding: 0.35em 1.2em;
@@ -18,18 +20,21 @@ button, #statusBlock {
 	border-radius: 0.12em;
 	box-sizing: border-box;
 	text-decoration: none;
-	font-family: 'Roboto',sans-serif;
+	font-family: 'Roboto', sans-serif;
 	font-weight: 300;
-	color:#FFFFFF;
+	color: #FFFFFF;
 	text-align: center;
 	transition: all 0.2s;
 }
+
 button:hover {
 	color: #000000;
 	background-color: #FFFFFF;
 	cursor: pointer;
 }
+
 @media all and (max-width:30em) {
+
 	button {
 		display: block;
 		margin: 0.4em auto;
@@ -38,20 +43,21 @@ button:hover {
 
 
 #statusBlock {
-    display: inline;
-    float: right;
-    margin: 10 auto;
+	display: inline;
+	float: right;
+	margin: 10 auto;
 }
 
 .red {
-    color: red;
+	color: red;
 }
 
 .green {
-    color: green;
+	color: green;
 }
 
-#logs, #config {
+#logs,
+#config {
 	width: 100%;
 	height: 100%;
 	clear: both;
@@ -79,18 +85,18 @@ button:hover {
 }
 
 #config {
-    border-radius: 6px;
-    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
-    font-family: 'Source Code Pro', monospace;
-    font-size: 14px;
-    font-weight: 400;
+	border-radius: 6px;
+	box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+	font-family: 'Source Code Pro', monospace;
+	font-size: 14px;
+	font-weight: 400;
 	height: 100%;
 	/* width - padding left - padding right */
 	width: calc(100% - 55px);
-    letter-spacing: normal;
-    line-height: 20px;
-    padding: 10px;
-    tab-size: 4;
+	letter-spacing: normal;
+	line-height: 20px;
+	padding: 10px;
+	tab-size: 4;
 }
 
 .codejar-wrap {
@@ -98,6 +104,7 @@ button:hover {
 	height: calc(100% - 20px);
 	width: 100%;
 }
+
 .codejar-linenumbers {
 	/* height + 2 * padding (10px) */
 	height: calc(100% + 20px);

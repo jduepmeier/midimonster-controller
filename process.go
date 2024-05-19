@@ -78,10 +78,16 @@ func (pc *ProcessControllerProcess) Start(ctx context.Context) (err error) {
 func (pc *ProcessControllerProcess) waitForExit(wg *sync.WaitGroup) {
 	pc.runningMutex.Lock()
 	defer pc.runningMutex.Unlock()
-	pc.logger.Debug().Msgf("midimonster pid: %d", pc.cmd.Process.Pid)
+	cmd := pc.cmd
+	if cmd != nil {
+		process := cmd.Process
+		if process != nil {
+			pc.logger.Debug().Msgf("midimonster pid: %d", pc.cmd.Process.Pid)
+		}
+		pc.cmd.Wait()
+		pc.logger.Info().Msgf("midimonster exit code %d", pc.cmd.ProcessState.ExitCode())
+	}
 	wg.Wait()
-	pc.cmd.Wait()
-	pc.logger.Info().Msgf("midimonster exit code %d", pc.cmd.ProcessState.ExitCode())
 	pc.cmd = nil
 }
 

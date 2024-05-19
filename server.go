@@ -1,10 +1,13 @@
 package midimonster
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -16,6 +19,8 @@ type Server struct {
 	config     *Config
 	controller *Controller
 	logger     zerolog.Logger
+	websocket  *WebsocketHandler
+	oldestLog  uint64
 }
 
 type HTTPError struct {
@@ -37,8 +42,8 @@ type HTTPConfigWrite struct {
 }
 
 type HTTPStatus struct {
-	Code int
-	Text string
+	Code int    `json:"code"`
+	Text string `json:"text"`
 }
 
 func NewServer(config *Config, controller *Controller, logger zerolog.Logger) *Server {
@@ -46,6 +51,8 @@ func NewServer(config *Config, controller *Controller, logger zerolog.Logger) *S
 		config:     config,
 		controller: controller,
 		logger:     logger.With().Str("component", "server").Logger(),
+		websocket:  NewWebsocketHandler(logger),
+		oldestLog:  0,
 	}
 	return server
 }
@@ -78,6 +85,9 @@ func (server *Server) Start() error {
 		response := server.handleLogs(w, r)
 		server.handleResponse(w, r, response)
 	})
+	router.HandleFunc("/api/ws", func(w http.ResponseWriter, r *http.Request) {
+		server.websocket.Connect(w, r)
+	})
 	muxer := http.NewServeMux()
 	muxer.Handle("/api/", router)
 	muxer.Handle("/", http.RedirectHandler("/web/", http.StatusPermanentRedirect))
@@ -86,6 +96,11 @@ func (server *Server) Start() error {
 	} else {
 		muxer.Handle("/web/", http.FileServer(http.FS(webContent)))
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		cancel()
+	}()
+	go server.startWebsocketLoop(ctx, server.config.Websocket.LoopDuration)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.Port), muxer)
 	if err != nil {
 		return err
@@ -205,5 +220,52 @@ func (server *Server) handleLogs(w http.ResponseWriter, r *http.Request) *HTTPRe
 			Newest: newest,
 		},
 		Code: http.StatusOK,
+	}
+}
+
+func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Duration) {
+	ticker := time.NewTicker(duration)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			server.runWebsocketStep(ctx)
+		}
+	}
+}
+
+func (server *Server) runWebsocketStep(ctx context.Context) {
+	server.logger.Debug().Msgf("run websocket step")
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		server.runWebsocketStepLogs(ctx)
+	}()
+	go func() {
+		defer wg.Done()
+		server.runWebsocketStepStatus(ctx)
+	}()
+	wg.Wait()
+}
+
+func (server *Server) runWebsocketStepStatus(ctx context.Context) {
+	status, err := server.controller.Midimonster.ProcessController.Status(ctx)
+	if err != nil {
+		server.logger.Err(err).Msgf("cannot get status")
+	}
+	server.websocket.SendStatus(ctx, status)
+}
+
+func (server *Server) runWebsocketStepLogs(ctx context.Context) {
+	logs, newest, err := server.controller.Midimonster.ProcessController.Logs(ctx, server.oldestLog)
+	if err != nil {
+		server.logger.Err(err).Msgf("cannot get logs")
+	}
+	server.oldestLog = newest
+	if len(logs) > 0 {
+		server.websocket.SendLogs(ctx, logs, newest)
 	}
 }
