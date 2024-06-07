@@ -72,7 +72,7 @@ func (handler *WebsocketHandler) Connect(server *Server, w http.ResponseWriter, 
 			server.runWebsocketStepLogs(context.TODO(), wsConn)
 			handler.addConnection(WebsocketCommandGetLogs, wsConn)
 
-		case "getStatus":
+		case WebsocketCommandGetStatus:
 			handler.addConnection(WebsocketCommandGetStatus, wsConn)
 		}
 	}
