@@ -246,15 +246,15 @@ func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Dura
 func (server *Server) runWebsocketStep(ctx context.Context) {
 	server.logger.Debug().Msgf("run websocket step")
 
-	server.runWebsocketStepStatus(ctx)
+	server.runWebsocketStepStatus(ctx, nil)
 }
 
-func (server *Server) runWebsocketStepStatus(ctx context.Context) {
+func (server *Server) runWebsocketStepStatus(ctx context.Context, conn *websocket.Conn) {
 	status, err := server.controller.Midimonster.ProcessController.Status(ctx)
 	if err != nil {
 		server.logger.Err(err).Msgf("cannot get status")
 	}
-	server.websocket.SendStatus(ctx, status)
+	server.websocket.SendStatus(ctx, status, conn)
 }
 
 func (server *Server) runWebsocketStepLogs(ctx context.Context, wsConn *websocket.Conn) {

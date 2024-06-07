@@ -60,6 +60,7 @@ func (handler *WebsocketHandler) Connect(server *Server, w http.ResponseWriter, 
 		wsConn.Close()
 	}()
 	for {
+		ctx := context.Background()
 		req := WebsocketRequest{}
 		err := wsConn.ReadJSON(&req)
 		if err != nil {
@@ -69,10 +70,11 @@ func (handler *WebsocketHandler) Connect(server *Server, w http.ResponseWriter, 
 		handler.logger.Debug().Msgf("received command %q from websocket", req.Command)
 		switch req.Command {
 		case WebsocketCommandGetLogs:
-			server.runWebsocketStepLogs(context.TODO(), wsConn)
+			server.runWebsocketStepLogs(ctx, wsConn)
 			handler.addConnection(WebsocketCommandGetLogs, wsConn)
 
 		case WebsocketCommandGetStatus:
+			server.runWebsocketStepStatus(ctx, wsConn)
 			handler.addConnection(WebsocketCommandGetStatus, wsConn)
 		}
 	}
@@ -106,16 +108,20 @@ func (handler *WebsocketHandler) sendMessageToConnection(ctx context.Context, co
 	}
 }
 
-func (handler *WebsocketHandler) sendMessage(ctx context.Context, command string, data interface{}) error {
+func (handler *WebsocketHandler) sendMessage(ctx context.Context, command string, data interface{}, conn *websocket.Conn) error {
 	handler.connectionMutex.Lock()
 	defer handler.connectionMutex.Unlock()
-	for _, conn := range handler.connections[command] {
+	if conn != nil {
 		handler.sendMessageToConnection(ctx, conn, command, data)
+	} else {
+		for _, conn := range handler.connections[command] {
+			handler.sendMessageToConnection(ctx, conn, command, data)
+		}
 	}
 	return nil
 }
 
-func (handler *WebsocketHandler) SendStatus(ctx context.Context, status ProcessStatus) {
+func (handler *WebsocketHandler) SendStatus(ctx context.Context, status ProcessStatus, conn *websocket.Conn) {
 	resp := &WebsocketStatusResponse{
 		Type: "status",
 		Status: HTTPStatus{
@@ -123,7 +129,7 @@ func (handler *WebsocketHandler) SendStatus(ctx context.Context, status ProcessS
 			Text: status.Text(),
 		},
 	}
-	handler.sendMessage(ctx, WebsocketCommandGetStatus, resp)
+	handler.sendMessage(ctx, WebsocketCommandGetStatus, resp, conn)
 }
 
 func (handler *WebsocketHandler) SendLogs(ctx context.Context, logs []string, newest uint64, conn *websocket.Conn) {
@@ -132,9 +138,5 @@ func (handler *WebsocketHandler) SendLogs(ctx context.Context, logs []string, ne
 		Newest: newest,
 		Lines:  logs,
 	}
-	if conn == nil {
-		handler.sendMessage(ctx, WebsocketCommandGetLogs, &resp)
-	} else {
-		handler.sendMessageToConnection(ctx, conn, WebsocketCommandGetLogs, &resp)
-	}
+	handler.sendMessage(ctx, WebsocketCommandGetLogs, &resp, conn)
 }
