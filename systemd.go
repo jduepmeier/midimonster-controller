@@ -21,12 +21,13 @@ type ProcessControllerSystemd struct {
 	unitName        string
 	logger          zerolog.Logger
 	logs            *RingBuffer
+	logsChannel     chan string
 	journalReader   *sdjournal.JournalReader
 	journalWait     sync.WaitGroup
 	journalStopChan chan time.Time
 }
 
-func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
+func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string) (ProcessController, error) {
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
 	if err != nil {
 		return nil, err
@@ -52,6 +53,7 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 		unitName:        config.Systemd.UnitName,
 		logger:          newLogger,
 		logs:            NewRingBuffer(1024),
+		logsChannel:     logsChannel,
 		journalReader:   journal,
 		journalStopChan: make(chan time.Time, 1),
 	}
@@ -72,6 +74,7 @@ func (pc *ProcessControllerSystemd) startJournalWatcher() {
 	for scanner.Scan() {
 		text := scanner.Text()
 		pc.logs.Append(text)
+		pc.logsChannel <- text
 	}
 	if scanner.Err() != nil {
 		pc.logger.Err(scanner.Err()).Msgf("journal scanner finished with error")

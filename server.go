@@ -6,21 +6,24 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog"
 )
+
+const LogsChannelSize = 10
 
 type ServerHandlerFunc func(server *Server, w http.ResponseWriter, r *http.Request) *HTTPReponse
 
 type Server struct {
-	config     *Config
-	controller *Controller
-	logger     zerolog.Logger
-	websocket  *WebsocketHandler
-	oldestLog  uint64
+	config      *Config
+	controller  *Controller
+	logger      zerolog.Logger
+	websocket   *WebsocketHandler
+	logsChannel chan string
+	oldestLog   uint64
 }
 
 type HTTPError struct {
@@ -48,11 +51,12 @@ type HTTPStatus struct {
 
 func NewServer(config *Config, controller *Controller, logger zerolog.Logger) *Server {
 	server := &Server{
-		config:     config,
-		controller: controller,
-		logger:     logger.With().Str("component", "server").Logger(),
-		websocket:  NewWebsocketHandler(logger),
-		oldestLog:  0,
+		config:      config,
+		controller:  controller,
+		logger:      logger.With().Str("component", "server").Logger(),
+		websocket:   NewWebsocketHandler(logger),
+		oldestLog:   0,
+		logsChannel: make(chan string, LogsChannelSize),
 	}
 	return server
 }
@@ -86,7 +90,7 @@ func (server *Server) Start() error {
 		server.handleResponse(w, r, response)
 	})
 	router.HandleFunc("/api/ws", func(w http.ResponseWriter, r *http.Request) {
-		server.websocket.Connect(w, r)
+		server.websocket.Connect(server, w, r)
 	})
 	muxer := http.NewServeMux()
 	muxer.Handle("/api/", router)
@@ -229,6 +233,10 @@ func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Dura
 		select {
 		case <-ctx.Done():
 			return
+		case logLine := <-server.logsChannel:
+			server.logger.Debug().Msgf("send log line to websocket: %s", logLine)
+			server.oldestLog++
+			server.websocket.SendLogs(ctx, []string{logLine}, server.oldestLog, nil)
 		case <-ticker.C:
 			server.runWebsocketStep(ctx)
 		}
@@ -237,18 +245,8 @@ func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Dura
 
 func (server *Server) runWebsocketStep(ctx context.Context) {
 	server.logger.Debug().Msgf("run websocket step")
-	var wg sync.WaitGroup
-	wg.Add(2)
 
-	go func() {
-		defer wg.Done()
-		server.runWebsocketStepLogs(ctx)
-	}()
-	go func() {
-		defer wg.Done()
-		server.runWebsocketStepStatus(ctx)
-	}()
-	wg.Wait()
+	server.runWebsocketStepStatus(ctx)
 }
 
 func (server *Server) runWebsocketStepStatus(ctx context.Context) {
@@ -259,13 +257,13 @@ func (server *Server) runWebsocketStepStatus(ctx context.Context) {
 	server.websocket.SendStatus(ctx, status)
 }
 
-func (server *Server) runWebsocketStepLogs(ctx context.Context) {
+func (server *Server) runWebsocketStepLogs(ctx context.Context, wsConn *websocket.Conn) {
 	logs, newest, err := server.controller.Midimonster.ProcessController.Logs(ctx, server.oldestLog)
 	if err != nil {
 		server.logger.Err(err).Msgf("cannot get logs")
 	}
 	server.oldestLog = newest
 	if len(logs) > 0 {
-		server.websocket.SendLogs(ctx, logs, newest)
+		server.websocket.SendLogs(ctx, logs, newest, wsConn)
 	}
 }

@@ -23,10 +23,11 @@ type ProcessControllerProcess struct {
 	stdout       io.ReadCloser
 	logger       zerolog.Logger
 	logsBuffer   *RingBuffer
+	logsChannel  chan string
 	runningMutex sync.Mutex
 }
 
-func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
+func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string) (ProcessController, error) {
 	newLogger := logger.With().Str("process-controller", "process").Logger()
 	newLogger.Info().Msg("init")
 	if config.Process.WorkDir == "" {
@@ -38,11 +39,12 @@ func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, con
 		configPath = config.MidimonsterConfigPath
 	}
 	return &ProcessControllerProcess{
-		ExecPath:   config.Process.BinPath,
-		ConfigPath: configPath,
-		WorkDir:    config.Process.WorkDir,
-		logsBuffer: NewRingBuffer(1024),
-		logger:     newLogger,
+		ExecPath:    config.Process.BinPath,
+		ConfigPath:  configPath,
+		WorkDir:     config.Process.WorkDir,
+		logsBuffer:  NewRingBuffer(1024),
+		logsChannel: logsChannel,
+		logger:      newLogger,
 	}, nil
 }
 
@@ -97,8 +99,10 @@ func (pc *ProcessControllerProcess) startReader(reader io.ReadCloser, id string,
 	var line string
 	for scanner.Scan() {
 		line = scanner.Text()
-		pc.logger.Debug().Msgf("midimonster (%s): %s", id, line)
-		pc.logsBuffer.Append(fmt.Sprintf("(%s) %s", id, line))
+		outLine := fmt.Sprintf("(%s) %s", id, line)
+		pc.logger.Debug().Msgf("midimonster: %s", outLine)
+		pc.logsBuffer.Append(outLine)
+		pc.logsChannel <- outLine
 	}
 	err = scanner.Err()
 	if err != nil {
