@@ -82,7 +82,12 @@ class App {
   }
 
   async connectWebSocket() {
-    this.ws = new WebSocket("ws://localhost:8080/api/ws");
+    let host = location.host;
+    let protocol = "ws";
+    if (location.protocol == "https") {
+      protocol = "wss";
+    }
+    this.ws = new WebSocket(`${protocol}://${host}/api/ws`);
     this.ws.onopen = () => {
       console.log("websocket open");
       this.ws.send(JSON.stringify({
