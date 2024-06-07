@@ -234,13 +234,26 @@ func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Dura
 		case <-ctx.Done():
 			return
 		case logLine := <-server.logsChannel:
-			server.logger.Debug().Msgf("send log line to websocket: %s", logLine)
-			server.oldestLog++
-			server.websocket.SendLogs(ctx, []string{logLine}, server.oldestLog, nil)
+			server.logger.Debug().Msgf("send log lines to websocket")
+			lines := server.websocketCollectLogs(logLine)
+			server.oldestLog += uint64(len(lines))
+			server.websocket.SendLogs(ctx, lines, server.oldestLog, nil)
 		case <-ticker.C:
 			server.runWebsocketStep(ctx)
 		}
 	}
+}
+
+func (server *Server) websocketCollectLogs(initialLogLine string) []string {
+	lines := []string{initialLogLine}
+	for i := 0; i < 100; i++ {
+		line, ok := <-server.logsChannel
+		if !ok {
+			return lines
+		}
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 func (server *Server) runWebsocketStep(ctx context.Context) {
