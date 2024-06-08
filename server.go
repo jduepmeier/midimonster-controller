@@ -62,7 +62,7 @@ func NewServer(config *Config, controller *Controller, logger zerolog.Logger) *S
 	return server
 }
 
-func (server *Server) handleResponse(w http.ResponseWriter, r *http.Request, response *HTTPReponse) {
+func (server *Server) handleResponse(w http.ResponseWriter, _ *http.Request, response *HTTPReponse) {
 	w.WriteHeader(response.Code)
 	encoder := json.NewEncoder(w)
 	encoder.Encode(&response.Body)
@@ -115,7 +115,7 @@ func (server *Server) Start() error {
 	return nil
 }
 
-func (server *Server) handleConfigReload(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+func (server *Server) handleConfigReload(_ http.ResponseWriter, r *http.Request) *HTTPReponse {
 	err := server.controller.Midimonster.Restart(r.Context())
 	var resp HTTPReponse
 	if err != nil {
@@ -134,7 +134,7 @@ func (server *Server) handleConfigReload(w http.ResponseWriter, r *http.Request)
 	return &resp
 }
 
-func (server *Server) handleConfigWrite(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+func (server *Server) handleConfigWrite(_ http.ResponseWriter, r *http.Request) *HTTPReponse {
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	content := HTTPConfigWrite{}
@@ -162,7 +162,7 @@ func (server *Server) handleConfigWrite(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (server *Server) handleConfigGet(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+func (server *Server) handleConfigGet(_ http.ResponseWriter, r *http.Request) *HTTPReponse {
 	defer r.Body.Close()
 	content := HTTPConfigWrite{
 		Content: server.controller.Midimonster.CurrentConfig,
@@ -173,7 +173,7 @@ func (server *Server) handleConfigGet(w http.ResponseWriter, r *http.Request) *H
 	}
 }
 
-func (server *Server) handleStatus(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+func (server *Server) handleStatus(_ http.ResponseWriter, r *http.Request) *HTTPReponse {
 	defer r.Body.Close()
 	status, err := server.controller.Midimonster.ProcessController.Status(r.Context())
 	if err != nil {
@@ -193,7 +193,7 @@ func (server *Server) handleStatus(w http.ResponseWriter, r *http.Request) *HTTP
 	}
 }
 
-func (server *Server) handleLogs(w http.ResponseWriter, r *http.Request) *HTTPReponse {
+func (server *Server) handleLogs(_ http.ResponseWriter, r *http.Request) *HTTPReponse {
 	defer r.Body.Close()
 	oldestString, ok := r.URL.Query()["oldest"]
 	var oldest uint64

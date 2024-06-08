@@ -118,7 +118,7 @@ func (handler *WebsocketHandler) addConnection(command string, conn *WebsocketCo
 	return nil
 }
 
-func (conn *WebsocketConnection) sendMessage(ctx context.Context, command string, data interface{}) {
+func (conn *WebsocketConnection) sendMessage(_ context.Context, command string, data interface{}) {
 	conn.logger.Debug().Msgf("send message %s to %s", command, conn.conn.RemoteAddr())
 	err := conn.conn.WriteJSON(&data)
 	if err != nil {
