@@ -41,7 +41,7 @@ class App {
 
   handleError(err, statusMessage) {
     if (err !== undefined) {
-      this.dom.logs.value += "ERROR: " + myJson["Error"] + "\n";
+      this.dom.logs.value += "ERROR: " + err + "\n";
     } else {
       this.showMessage(statusMessage);
     }

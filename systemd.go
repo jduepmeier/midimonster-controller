@@ -17,17 +17,20 @@ import (
 )
 
 type ProcessControllerSystemd struct {
-	conn            *dbus.Conn
-	unitName        string
-	logger          zerolog.Logger
-	logs            *RingBuffer
-	logsChannel     chan string
-	journalReader   *sdjournal.JournalReader
-	journalWait     sync.WaitGroup
-	journalStopChan chan time.Time
+	conn              *dbus.Conn
+	unitName          string
+	logger            zerolog.Logger
+	logs              *RingBuffer
+	logsChannel       chan string
+	statusChannel     chan struct{}
+	journalReader     *sdjournal.JournalReader
+	cleanupWait       sync.WaitGroup
+	journalStopChan   chan time.Time
+	lastState         ProcessStatus
+	contextCancelFunc context.CancelFunc
 }
 
-func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string) (ProcessController, error) {
+func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string, statusChannel chan struct{}) (ProcessController, error) {
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
 	if err != nil {
 		return nil, err
@@ -47,22 +50,51 @@ func NewProcessControllerSystemd(ctx context.Context, logger zerolog.Logger, con
 	if err != nil {
 		return nil, fmt.Errorf("cannot create journal reader: %w", err)
 	}
+	cleanupContext, cancelFunc := context.WithCancel(context.Background())
 
 	pc := &ProcessControllerSystemd{
-		conn:            conn,
-		unitName:        config.Systemd.UnitName,
-		logger:          newLogger,
-		logs:            NewRingBuffer(1024),
-		logsChannel:     logsChannel,
-		journalReader:   journal,
-		journalStopChan: make(chan time.Time, 1),
+		conn:              conn,
+		unitName:          config.Systemd.UnitName,
+		logger:            newLogger,
+		logs:              NewRingBuffer(1024),
+		logsChannel:       logsChannel,
+		statusChannel:     statusChannel,
+		journalReader:     journal,
+		contextCancelFunc: cancelFunc,
+		journalStopChan:   make(chan time.Time, 1),
 	}
-	pc.journalWait.Add(1)
+	status, err := pc.Status(ctx)
+	if err == nil {
+		pc.lastState = status
+	}
+	pc.cleanupWait.Add(2)
 	go func() {
-		defer pc.journalWait.Done()
+		defer pc.cleanupWait.Done()
 		pc.startJournalWatcher()
 	}()
+	go func() {
+		pc.cleanupWait.Done()
+		pc.startStatusWatcher(cleanupContext)
+	}()
 	return pc, nil
+}
+
+func (pc *ProcessControllerSystemd) startStatusWatcher(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			status, err := pc.Status(ctx)
+			if err != nil {
+				if status != pc.lastState {
+					pc.statusChannel <- struct{}{}
+				}
+			}
+		}
+	}
 }
 
 func (pc *ProcessControllerSystemd) startJournalWatcher() {
@@ -139,9 +171,10 @@ func (pc *ProcessControllerSystemd) Status(ctx context.Context) (ProcessStatus, 
 }
 
 func (pc *ProcessControllerSystemd) Cleanup() {
+	pc.contextCancelFunc()
 	pc.conn.Close()
 	pc.journalStopChan <- time.Now()
-	pc.journalWait.Done()
+	pc.cleanupWait.Done()
 }
 
 func (pc *ProcessControllerSystemd) Logs(ctx context.Context, oldest uint64) ([]string, uint64, error) {

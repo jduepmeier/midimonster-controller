@@ -15,19 +15,20 @@ import (
 )
 
 type ProcessControllerProcess struct {
-	cmd          *exec.Cmd
-	ExecPath     string
-	ConfigPath   string
-	WorkDir      string
-	stderr       io.ReadCloser
-	stdout       io.ReadCloser
-	logger       zerolog.Logger
-	logsBuffer   *RingBuffer
-	logsChannel  chan string
-	runningMutex sync.Mutex
+	cmd           *exec.Cmd
+	ExecPath      string
+	ConfigPath    string
+	WorkDir       string
+	stderr        io.ReadCloser
+	stdout        io.ReadCloser
+	logger        zerolog.Logger
+	logsBuffer    *RingBuffer
+	logsChannel   chan string
+	statusChannel chan struct{}
+	runningMutex  sync.Mutex
 }
 
-func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string) (ProcessController, error) {
+func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string, statusChannel chan struct{}) (ProcessController, error) {
 	newLogger := logger.With().Str("process-controller", "process").Logger()
 	newLogger.Info().Msg("init")
 	if config.Process.WorkDir == "" {
@@ -73,8 +74,13 @@ func (pc *ProcessControllerProcess) Start(ctx context.Context) (err error) {
 	if err != nil {
 		pc.logger.Err(err).Msg("could not start midimonster")
 	}
+	pc.notifyStatusChange()
 	go pc.waitForExit(&wg)
 	return err
+}
+
+func (pc *ProcessControllerProcess) notifyStatusChange() {
+	pc.statusChannel <- struct{}{}
 }
 
 func (pc *ProcessControllerProcess) waitForExit(wg *sync.WaitGroup) {
@@ -91,6 +97,7 @@ func (pc *ProcessControllerProcess) waitForExit(wg *sync.WaitGroup) {
 	}
 	wg.Wait()
 	pc.cmd = nil
+	pc.notifyStatusChange()
 }
 
 func (pc *ProcessControllerProcess) startReader(reader io.ReadCloser, id string, wg *sync.WaitGroup) {

@@ -18,12 +18,13 @@ const LogsChannelSize = 10
 type ServerHandlerFunc func(server *Server, w http.ResponseWriter, r *http.Request) *HTTPReponse
 
 type Server struct {
-	config      *Config
-	controller  *Controller
-	logger      zerolog.Logger
-	websocket   *WebsocketHandler
-	logsChannel chan string
-	oldestLog   uint64
+	config        *Config
+	controller    *Controller
+	logger        zerolog.Logger
+	websocket     *WebsocketHandler
+	logsChannel   chan string
+	statusChannel chan struct{}
+	oldestLog     uint64
 }
 
 type HTTPError struct {
@@ -51,12 +52,13 @@ type HTTPStatus struct {
 
 func NewServer(config *Config, controller *Controller, logger zerolog.Logger) *Server {
 	server := &Server{
-		config:      config,
-		controller:  controller,
-		logger:      logger.With().Str("component", "server").Logger(),
-		websocket:   NewWebsocketHandler(logger),
-		oldestLog:   0,
-		logsChannel: make(chan string, LogsChannelSize),
+		config:        config,
+		controller:    controller,
+		logger:        logger.With().Str("component", "server").Logger(),
+		websocket:     NewWebsocketHandler(logger),
+		oldestLog:     0,
+		logsChannel:   make(chan string, LogsChannelSize),
+		statusChannel: make(chan struct{}),
 	}
 	return server
 }
@@ -103,6 +105,7 @@ func (server *Server) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
 		cancel()
+		close(server.logsChannel)
 	}()
 	go server.startWebsocketLoop(ctx, server.config.Websocket.LoopDuration)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.Port), muxer)
@@ -238,6 +241,8 @@ func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Dura
 			lines := server.websocketCollectLogs(logLine)
 			server.oldestLog += uint64(len(lines))
 			server.websocket.SendLogs(ctx, lines, server.oldestLog, nil)
+		case <-server.statusChannel:
+			server.runWebsocketStepStatus(ctx, nil)
 		case <-ticker.C:
 			server.runWebsocketStep(ctx)
 		}

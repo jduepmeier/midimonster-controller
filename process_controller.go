@@ -15,7 +15,7 @@ type ProcessController interface {
 	Cleanup()
 }
 
-type NewProcessControllerFunc = func(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string) (ProcessController, error)
+type NewProcessControllerFunc = func(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string, statusChannel chan struct{}) (ProcessController, error)
 
 type ProcessStatus int
 
