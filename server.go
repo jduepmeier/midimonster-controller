@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog"
 )
 
@@ -251,14 +250,15 @@ func (server *Server) startWebsocketLoop(ctx context.Context, duration time.Dura
 
 func (server *Server) websocketCollectLogs(initialLogLine string) []string {
 	lines := []string{initialLogLine}
-	for i := 0; i < 100; i++ {
-		line, ok := <-server.logsChannel
-		if !ok {
+	timeout := time.After(100 * time.Millisecond)
+	for {
+		select {
+		case line := <-server.logsChannel:
+			lines = append(lines, line)
+		case <-timeout:
 			return lines
 		}
-		lines = append(lines, line)
 	}
-	return lines
 }
 
 func (server *Server) runWebsocketStep(ctx context.Context) {
@@ -267,7 +267,7 @@ func (server *Server) runWebsocketStep(ctx context.Context) {
 	server.runWebsocketStepStatus(ctx, nil)
 }
 
-func (server *Server) runWebsocketStepStatus(ctx context.Context, conn *websocket.Conn) {
+func (server *Server) runWebsocketStepStatus(ctx context.Context, conn *WebsocketConnection) {
 	status, err := server.controller.Midimonster.ProcessController.Status(ctx)
 	if err != nil {
 		server.logger.Err(err).Msgf("cannot get status")
@@ -275,7 +275,7 @@ func (server *Server) runWebsocketStepStatus(ctx context.Context, conn *websocke
 	server.websocket.SendStatus(ctx, status, conn)
 }
 
-func (server *Server) runWebsocketStepLogs(ctx context.Context, wsConn *websocket.Conn) {
+func (server *Server) runWebsocketStepLogs(ctx context.Context, wsConn *WebsocketConnection) {
 	logs, newest, err := server.controller.Midimonster.ProcessController.Logs(ctx, server.oldestLog)
 	if err != nil {
 		server.logger.Err(err).Msgf("cannot get logs")

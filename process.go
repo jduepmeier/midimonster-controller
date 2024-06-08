@@ -40,12 +40,13 @@ func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, con
 		configPath = config.MidimonsterConfigPath
 	}
 	return &ProcessControllerProcess{
-		ExecPath:    config.Process.BinPath,
-		ConfigPath:  configPath,
-		WorkDir:     config.Process.WorkDir,
-		logsBuffer:  NewRingBuffer(1024),
-		logsChannel: logsChannel,
-		logger:      newLogger,
+		ExecPath:      config.Process.BinPath,
+		ConfigPath:    configPath,
+		WorkDir:       config.Process.WorkDir,
+		logsBuffer:    NewRingBuffer(1024),
+		logsChannel:   logsChannel,
+		statusChannel: statusChannel,
+		logger:        newLogger,
 	}, nil
 }
 

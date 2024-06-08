@@ -30,16 +30,33 @@ type WebsocketStatusResponse struct {
 }
 
 type WebsocketHandler struct {
-	logger          zerolog.Logger
-	wsUpgrader      websocket.Upgrader
-	connections     map[string][]*websocket.Conn
-	connectionMutex sync.Mutex
+	logger             zerolog.Logger
+	wsUpgrader         websocket.Upgrader
+	connections        map[string][]*WebsocketConnection
+	connectionMutex    sync.Mutex
+	websocketIdCounter uint64
+}
+
+type WebsocketConnection struct {
+	id     uint64
+	conn   *websocket.Conn
+	logger zerolog.Logger
+}
+
+func (handler *WebsocketHandler) newWebsocketConnection(conn *websocket.Conn, logger zerolog.Logger) *WebsocketConnection {
+	id := handler.websocketIdCounter
+	handler.websocketIdCounter++
+	return &WebsocketConnection{
+		id:     id,
+		conn:   conn,
+		logger: logger.With().Uint64("id", id).Str("component", "websocketConnection").Logger(),
+	}
 }
 
 func NewWebsocketHandler(logger zerolog.Logger) *WebsocketHandler {
-	connections := make(map[string][]*websocket.Conn)
-	connections[WebsocketCommandGetLogs] = make([]*websocket.Conn, 0)
-	connections[WebsocketCommandGetStatus] = make([]*websocket.Conn, 0)
+	connections := make(map[string][]*WebsocketConnection)
+	connections[WebsocketCommandGetLogs] = make([]*WebsocketConnection, 0)
+	connections[WebsocketCommandGetStatus] = make([]*WebsocketConnection, 0)
 	return &WebsocketHandler{
 		logger:      logger.With().Str("component", "websocket").Logger(),
 		wsUpgrader:  websocket.Upgrader{},
@@ -54,9 +71,10 @@ func (handler *WebsocketHandler) Connect(server *Server, w http.ResponseWriter, 
 		handler.logger.Err(err).Msgf("cannot upgrade connection to websocket")
 		return err
 	}
+	wrapperConn := handler.newWebsocketConnection(wsConn, handler.logger)
 
 	defer func() {
-		handler.closeConnection(wsConn)
+		handler.closeConnection(wrapperConn)
 		wsConn.Close()
 	}()
 	for {
@@ -70,22 +88,22 @@ func (handler *WebsocketHandler) Connect(server *Server, w http.ResponseWriter, 
 		handler.logger.Debug().Msgf("received command %q from websocket", req.Command)
 		switch req.Command {
 		case WebsocketCommandGetLogs:
-			server.runWebsocketStepLogs(ctx, wsConn)
-			handler.addConnection(WebsocketCommandGetLogs, wsConn)
+			server.runWebsocketStepLogs(ctx, wrapperConn)
+			handler.addConnection(WebsocketCommandGetLogs, wrapperConn)
 
 		case WebsocketCommandGetStatus:
-			server.runWebsocketStepStatus(ctx, wsConn)
-			handler.addConnection(WebsocketCommandGetStatus, wsConn)
+			server.runWebsocketStepStatus(ctx, wrapperConn)
+			handler.addConnection(WebsocketCommandGetStatus, wrapperConn)
 		}
 	}
 }
 
-func (handler *WebsocketHandler) closeConnection(targetConn *websocket.Conn) {
+func (handler *WebsocketHandler) closeConnection(targetConn *WebsocketConnection) {
 	handler.connectionMutex.Lock()
 	defer handler.connectionMutex.Unlock()
 	for cmd, conns := range handler.connections {
 		for index, conn := range conns {
-			if conn == targetConn {
+			if conn.id == targetConn.id {
 				handler.connections[cmd] = append(conns[:index], conns[index+1:]...)
 				break
 			}
@@ -93,35 +111,35 @@ func (handler *WebsocketHandler) closeConnection(targetConn *websocket.Conn) {
 	}
 }
 
-func (handler *WebsocketHandler) addConnection(command string, conn *websocket.Conn) error {
+func (handler *WebsocketHandler) addConnection(command string, conn *WebsocketConnection) error {
 	handler.connectionMutex.Lock()
 	defer handler.connectionMutex.Unlock()
 	handler.connections[command] = append(handler.connections[command], conn)
 	return nil
 }
 
-func (handler *WebsocketHandler) sendMessageToConnection(ctx context.Context, conn *websocket.Conn, command string, data interface{}) {
-	handler.logger.Debug().Msgf("send message %s to %s", command, conn.RemoteAddr())
-	err := conn.WriteJSON(&data)
+func (conn *WebsocketConnection) sendMessage(ctx context.Context, command string, data interface{}) {
+	conn.logger.Debug().Msgf("send message %s to %s", command, conn.conn.RemoteAddr())
+	err := conn.conn.WriteJSON(&data)
 	if err != nil {
-		handler.logger.Err(err).Msgf("error sending command %s", command)
+		conn.logger.Err(err).Msgf("error sending command %s", command)
 	}
 }
 
-func (handler *WebsocketHandler) sendMessage(ctx context.Context, command string, data interface{}, conn *websocket.Conn) error {
+func (handler *WebsocketHandler) sendMessage(ctx context.Context, command string, data interface{}, conn *WebsocketConnection) error {
 	handler.connectionMutex.Lock()
 	defer handler.connectionMutex.Unlock()
 	if conn != nil {
-		handler.sendMessageToConnection(ctx, conn, command, data)
+		conn.sendMessage(ctx, command, data)
 	} else {
 		for _, conn := range handler.connections[command] {
-			handler.sendMessageToConnection(ctx, conn, command, data)
+			conn.sendMessage(ctx, command, data)
 		}
 	}
 	return nil
 }
 
-func (handler *WebsocketHandler) SendStatus(ctx context.Context, status ProcessStatus, conn *websocket.Conn) {
+func (handler *WebsocketHandler) SendStatus(ctx context.Context, status ProcessStatus, conn *WebsocketConnection) {
 	resp := &WebsocketStatusResponse{
 		Type: "status",
 		Status: HTTPStatus{
@@ -132,7 +150,7 @@ func (handler *WebsocketHandler) SendStatus(ctx context.Context, status ProcessS
 	handler.sendMessage(ctx, WebsocketCommandGetStatus, resp, conn)
 }
 
-func (handler *WebsocketHandler) SendLogs(ctx context.Context, logs []string, newest uint64, conn *websocket.Conn) {
+func (handler *WebsocketHandler) SendLogs(ctx context.Context, logs []string, newest uint64, conn *WebsocketConnection) {
 	resp := &WebsocketLogsResponse{
 		Type:   "logs",
 		Newest: newest,
