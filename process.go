@@ -15,18 +15,20 @@ import (
 )
 
 type ProcessControllerProcess struct {
-	cmd          *exec.Cmd
-	ExecPath     string
-	ConfigPath   string
-	WorkDir      string
-	stderr       io.ReadCloser
-	stdout       io.ReadCloser
-	logger       zerolog.Logger
-	logsBuffer   *RingBuffer
-	runningMutex sync.Mutex
+	cmd           *exec.Cmd
+	ExecPath      string
+	ConfigPath    string
+	WorkDir       string
+	stderr        io.ReadCloser
+	stdout        io.ReadCloser
+	logger        zerolog.Logger
+	logsBuffer    *RingBuffer
+	logsChannel   chan string
+	statusChannel chan struct{}
+	runningMutex  sync.Mutex
 }
 
-func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config) (ProcessController, error) {
+func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, config *Config, logsChannel chan string, statusChannel chan struct{}) (ProcessController, error) {
 	newLogger := logger.With().Str("process-controller", "process").Logger()
 	newLogger.Info().Msg("init")
 	if config.Process.WorkDir == "" {
@@ -38,11 +40,13 @@ func NewProcessControllerProcess(ctx context.Context, logger zerolog.Logger, con
 		configPath = config.MidimonsterConfigPath
 	}
 	return &ProcessControllerProcess{
-		ExecPath:   config.Process.BinPath,
-		ConfigPath: configPath,
-		WorkDir:    config.Process.WorkDir,
-		logsBuffer: NewRingBuffer(1024),
-		logger:     newLogger,
+		ExecPath:      config.Process.BinPath,
+		ConfigPath:    configPath,
+		WorkDir:       config.Process.WorkDir,
+		logsBuffer:    NewRingBuffer(1024),
+		logsChannel:   logsChannel,
+		statusChannel: statusChannel,
+		logger:        newLogger,
 	}, nil
 }
 
@@ -71,18 +75,30 @@ func (pc *ProcessControllerProcess) Start(ctx context.Context) (err error) {
 	if err != nil {
 		pc.logger.Err(err).Msg("could not start midimonster")
 	}
+	pc.notifyStatusChange()
 	go pc.waitForExit(&wg)
 	return err
+}
+
+func (pc *ProcessControllerProcess) notifyStatusChange() {
+	pc.statusChannel <- struct{}{}
 }
 
 func (pc *ProcessControllerProcess) waitForExit(wg *sync.WaitGroup) {
 	pc.runningMutex.Lock()
 	defer pc.runningMutex.Unlock()
-	pc.logger.Debug().Msgf("midimonster pid: %d", pc.cmd.Process.Pid)
+	cmd := pc.cmd
+	if cmd != nil {
+		process := cmd.Process
+		if process != nil {
+			pc.logger.Debug().Msgf("midimonster pid: %d", pc.cmd.Process.Pid)
+		}
+		pc.cmd.Wait()
+		pc.logger.Info().Msgf("midimonster exit code %d", pc.cmd.ProcessState.ExitCode())
+	}
 	wg.Wait()
-	pc.cmd.Wait()
-	pc.logger.Info().Msgf("midimonster exit code %d", pc.cmd.ProcessState.ExitCode())
 	pc.cmd = nil
+	pc.notifyStatusChange()
 }
 
 func (pc *ProcessControllerProcess) startReader(reader io.ReadCloser, id string, wg *sync.WaitGroup) {
@@ -91,8 +107,10 @@ func (pc *ProcessControllerProcess) startReader(reader io.ReadCloser, id string,
 	var line string
 	for scanner.Scan() {
 		line = scanner.Text()
-		pc.logger.Debug().Msgf("midimonster (%s): %s", id, line)
-		pc.logsBuffer.Append(fmt.Sprintf("(%s) %s", id, line))
+		outLine := fmt.Sprintf("(%s) %s", id, line)
+		pc.logger.Debug().Msgf("midimonster: %s", outLine)
+		pc.logsBuffer.Append(outLine)
+		pc.logsChannel <- outLine
 	}
 	err = scanner.Err()
 	if err != nil {

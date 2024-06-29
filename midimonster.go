@@ -14,21 +14,25 @@ type Midimonster struct {
 	LastConfig        string
 	ProcessController ProcessController
 	logger            zerolog.Logger
+	logsChannel       chan string
+	statusChannel     chan struct{}
 }
 
-func NewMidimonster(config *Config, logger zerolog.Logger) (*Midimonster, error) {
+func NewMidimonster(config *Config, logger zerolog.Logger, logsChannel chan string, statusChannel chan struct{}) (*Midimonster, error) {
 	var err error
 	ctx := context.Background()
 	midi := &Midimonster{
-		Path:   config.MidimonsterConfigPath,
-		logger: logger,
+		Path:          config.MidimonsterConfigPath,
+		logger:        logger,
+		logsChannel:   logsChannel,
+		statusChannel: statusChannel,
 	}
 	constructor, ok := ProcessControllerConstructors[config.ControlType]
 	if !ok {
 		return nil, fmt.Errorf("cannot create process controller: unknown control type %s", config.ControlType)
 	}
 	logger.Info().Msgf("using process managment type %s", config.ControlType)
-	midi.ProcessController, err = constructor(ctx, midi.logger, config)
+	midi.ProcessController, err = constructor(ctx, midi.logger, config, logsChannel, statusChannel)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -15,6 +16,10 @@ var (
 	}
 )
 
+type WebsocketConfig struct {
+	LoopDuration time.Duration `yaml:"loopDuration"`
+}
+
 type Config struct {
 	MidimonsterConfigPath string        `yaml:"configPath"`
 	BindAddr              string        `yaml:"bind"`
@@ -23,6 +28,7 @@ type Config struct {
 	Process               ConfigProcess `yaml:"process"`
 	ControlType           string        `yaml:"controlType"`
 	Development           bool
+	Websocket             WebsocketConfig `yaml:"websocket"`
 }
 
 type ConfigSystemd struct {
@@ -46,6 +52,9 @@ func DefaultConfig() *Config {
 		},
 		Process: ConfigProcess{
 			Args: []string{},
+		},
+		Websocket: WebsocketConfig{
+			LoopDuration: 5 * time.Second,
 		},
 	}
 }

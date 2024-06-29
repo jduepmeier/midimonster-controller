@@ -3,6 +3,7 @@
 		<title>Midimonster Controller</title>
 		<link rel="stylesheet" href="normalize.css" >
 		<link rel="stylesheet" href="highlightjs.css" />
+		<link rel="stylesheet" href="toastify.css" />
 		<link rel="stylesheet" href="main.css" />
 	</head>
 	<body>
@@ -14,6 +15,9 @@
 				<button id="write">Write Config</button>
 				<button id="restart">Restart Midimonster</button>
 				<button id="get">Get newest config</button>
+				<label for="autoscroll">Autoscroll
+					<input type="checkbox" id="autoscroll" checked>
+				</label>
 				<div id="statusBlock">Status: <span id="status"></span></div>
 			</div>
 
@@ -21,6 +25,7 @@
 				<textarea id="logs"></textarea>
 			</div>
 		</div>
+		<script type="text/javascript" src="toastify.js"></script>
 		<script type="module" src="main.js"></script>
 	</body>
 </html>

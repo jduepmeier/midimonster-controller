@@ -10,7 +10,7 @@ port: 8080
 # Path the the midimonster configuration.
 # This file will be replaced if the write config button in
 # the web ui is pressed.
-configPath: /etc/midimonster/midimonster.cfg
+configPath: /home/mpease/code/midimonster/monster.cfg
 # This configures the way the controller speaks to midimonster.
 # Possible values are "process" and "systemd".
 # "process" uses sub processes and "systemd" uses systemd units.
@@ -18,10 +18,10 @@ controlType: process
 # configuration options for controlType process
 process:
   # configures the path to the midimonster binary.
-  binPath: midimonster
+  binPath: /home/mpease/code/midimonster/midimonster
   # working dir for midimonster (midimonster will search for backends in this directory).
   # If empty use the directory of the midimonster binary.
-  workDir: ""
+  workDir: "/home/mpease/code/midimonster"
   # List of command line arguments for midimonster. The config file will always be given.
   args: []
 
