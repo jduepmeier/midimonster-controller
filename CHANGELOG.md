@@ -1,5 +1,36 @@
 ## changelog
 
+## 0.3.0 (2024-06-29)
+
+### Feat
+
+- **websocket**: send status on status change without polling
+- **websocket**: send logs in batches
+- **websocket**: send status on cmd without run loop
+- **websocket**: stream logs instead of polling
+- add websocket and toastify
+
+### Fix
+
+- **deps**: update module github.com/stretchr/testify to v1.9.0
+- **websocket**: fix websocket hangs on logs and status
+- **websocket**: use getStatus constant
+- **websocket**: use location for websocket address instead of hardcoding it
+- **deps**: update module github.com/rs/zerolog to v1.33.0
+- **deps**: update module github.com/jessevdk/go-flags to v1.6.1
+- **deps**: update module github.com/rs/zerolog to v1.32.0
+- **deps**: update module github.com/gorilla/mux to v1.8.1
+- **deps**: update module github.com/rs/zerolog to v1.31.0
+- **deps**: update module github.com/rs/zerolog to v1.30.0
+- **deps**: update module github.com/stretchr/testify to v1.8.4
+- **deps**: update module github.com/stretchr/testify to v1.8.3
+- **deps**: update module github.com/rs/zerolog to v1.29.1
+- **midimonster**: remove deprecated io/ioutil package
+
+### Refactor
+
+- rename unused function parameters
+
 ## 0.2.0 (2023-03-19)
 
 ### Feat
