@@ -1,5 +1,11 @@
 ## changelog
 
+## 0.3.1 (2024-06-29)
+
+### Fix
+
+- **deps**: update module github.com/gorilla/websocket to v1.5.3
+
 ## 0.3.0 (2024-06-29)
 
 ### Feat
