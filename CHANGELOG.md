@@ -1,5 +1,12 @@
 ## changelog
 
+## 0.3.2 (2025-04-21)
+
+### Fix
+
+- **deps**: update module github.com/rs/zerolog to v1.34.0
+- **deps**: update module github.com/stretchr/testify to v1.10.0
+
 ## 0.3.1 (2024-06-29)
 
 ### Fix
