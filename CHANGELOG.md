@@ -1,5 +1,12 @@
 ## changelog
 
+## 0.3.3 (2025-09-03)
+
+### Fix
+
+- **deps**: update module github.com/stretchr/testify to v1.11.1
+- **deps**: update module github.com/coreos/go-systemd/v22 to v22.6.0
+
 ## 0.3.2 (2025-04-21)
 
 ### Fix
