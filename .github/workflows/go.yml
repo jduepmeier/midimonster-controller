@@ -16,7 +16,7 @@ jobs:
     - run: sudo apt-get install -y gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu libsystemd-dev
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: '>=1.20.1'
         cache: true
