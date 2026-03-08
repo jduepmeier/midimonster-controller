@@ -1,5 +1,11 @@
 ## changelog
 
+## 0.3.4 (2026-03-08)
+
+### Fix
+
+- **deps**: update module github.com/coreos/go-systemd/v22 to v22.7.0
+
 ## 0.3.3 (2025-09-03)
 
 ### Fix
