@@ -23,7 +23,7 @@ jobs:
       - run: sudo apt-get install -y gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu libsystemd-dev
       # More assembly might be required: Docker logins, GPG, etc. It all depends
       # on your needs.
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v7
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro':
           distribution: goreleaser
